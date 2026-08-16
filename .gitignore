@@ -28,3 +28,7 @@ logfile
 
 # Spring Boot DevTools restart trigger
 .reloadtrigger
+
+prometheus/data/
+dump.rdb
+
