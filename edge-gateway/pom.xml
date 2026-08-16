@@ -69,6 +69,15 @@
             <artifactId>resilience4j-reactor</artifactId>
             <version>2.2.0</version>
         </dependency>
+        <!-- Option B: Actuator + Prometheus metrics scrape endpoint -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-actuator</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
     </dependencies>
 
     <build>
