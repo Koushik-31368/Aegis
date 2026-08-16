@@ -1,5 +1,7 @@
 package com.aegis.cloud;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -21,9 +23,14 @@ public class IngestController {
     private static final Logger log = LoggerFactory.getLogger(IngestController.class);
 
     private final TelemetryReadingRepository repository;
+    private final Counter duplicatesRejectedCounter;
 
-    public IngestController(TelemetryReadingRepository repository) {
+    public IngestController(TelemetryReadingRepository repository,
+                            MeterRegistry meterRegistry) {
         this.repository = repository;
+        this.duplicatesRejectedCounter = Counter.builder("aegis.duplicates.rejected")
+                .description("Readings rejected because reading_hash already exists in DB")
+                .register(meterRegistry);
     }
 
     @PostMapping("/ingest")
@@ -47,6 +54,7 @@ public class IngestController {
             // Unique constraint on reading_hash fired — this is a duplicate.
             // Log and return 200 so the caller doesn't retry unnecessarily.
             log.info("Duplicate reading ignored: {}", reading.getReadingHash());
+            duplicatesRejectedCounter.increment();
             return ResponseEntity.ok("Duplicate ignored");
         }
     }

@@ -2,6 +2,8 @@ package com.aegis.edge;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -33,9 +35,15 @@ public class RedisBufferService {
     private final ObjectMapper objectMapper;
 
     public RedisBufferService(RedisTemplate<String, String> redisTemplate,
-                              ObjectMapper objectMapper) {
+                              ObjectMapper objectMapper,
+                              MeterRegistry meterRegistry) {
         this.redisTemplate = redisTemplate;
         this.objectMapper = objectMapper;
+        // Gauge: tracks live buffer depth — Prometheus scrapes this directly.
+        // Uses a supplier so the value is read at scrape time, not at registration.
+        Gauge.builder("redis.buffer.size", this, RedisBufferService::getBufferSize)
+             .description("Current number of readings buffered in Redis")
+             .register(meterRegistry);
     }
 
     /**

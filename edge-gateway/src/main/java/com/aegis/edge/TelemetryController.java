@@ -1,5 +1,7 @@
 package com.aegis.edge;
 
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.MeterRegistry;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -31,14 +33,27 @@ public class TelemetryController {
 
     private final CriticalityScorer criticalityScorer;
     private final CloudForwarderService cloudForwarderService;
+    private final Counter normalCounter;
+    private final Counter criticalCounter;
 
     // Readings scoring at or above this are treated as critical.
     private static final int CRITICAL_THRESHOLD = 7;
 
     public TelemetryController(CriticalityScorer criticalityScorer,
-                               CloudForwarderService cloudForwarderService) {
+                               CloudForwarderService cloudForwarderService,
+                               MeterRegistry meterRegistry) {
         this.criticalityScorer = criticalityScorer;
         this.cloudForwarderService = cloudForwarderService;
+        // Pre-build the two tagged counter instances (Micrometer best practice:
+        // reuse Counter objects instead of calling counter() on every request).
+        this.normalCounter = Counter.builder("aegis.readings.scored")
+                .description("Readings scored by the ONNX model")
+                .tag("criticality_tier", "normal")
+                .register(meterRegistry);
+        this.criticalCounter = Counter.builder("aegis.readings.scored")
+                .description("Readings scored by the ONNX model")
+                .tag("criticality_tier", "critical")
+                .register(meterRegistry);
     }
 
     @PostMapping("/telemetry")
@@ -55,11 +70,13 @@ public class TelemetryController {
         // any accidental duplicate rather than storing it twice.
         reading.computeAndSetHash();
 
-        // STEP 2: Log at appropriate level.
+        // STEP 2: Log at appropriate level + increment metric counter.
         if (criticality >= CRITICAL_THRESHOLD) {
             log.warn("CRITICAL reading at edge (score={}): {}", criticality, reading);
+            criticalCounter.increment();
         } else {
             log.info("Received reading at edge (score={}): {}", criticality, reading);
+            normalCounter.increment();
         }
 
         // STEP 3: Forward (circuit-breaker-protected). If circuit is OPEN or the
