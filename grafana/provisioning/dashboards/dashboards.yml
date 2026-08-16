@@ -8,4 +8,4 @@ providers:
     disableDeletion: false
     updateIntervalSeconds: 30
     options:
-      path: /etc/grafana/provisioning/dashboards
+      path: g:\aegis-project\grafana\provisioning\dashboards
