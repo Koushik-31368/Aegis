@@ -16,15 +16,21 @@ import time
 import requests
 
 EDGE_GATEWAY_URL = "http://localhost:8080/telemetry"
-SENSOR_IDS = ["sensor-01", "sensor-02", "sensor-03"]
+SENSORS = ["sensor-01", "sensor-02", "sensor-03"]
+NORMAL_MEAN = 67.5          # midpoint of normal temp range
+NORMAL_STD = 4.0            # approximate std for normal readings
 NORMAL_TEMP_RANGE = (60.0, 75.0)   # degrees, "normal" operating range
 ANOMALY_TEMP_RANGE = (95.0, 120.0)  # degrees, clearly abnormal
-ANOMALY_PROBABILITY = 0.05  # 5% of readings are anomalies
+ANOMALY_PROB = 0.05         # 5% of readings are anomalies
+ANOMALY_PROBABILITY = ANOMALY_PROB  # legacy alias
+SENSOR_IDS = SENSORS        # legacy alias
 
 
 def generate_reading():
-    sensor_id = random.choice(SENSOR_IDS)
-    is_anomaly = random.random() < ANOMALY_PROBABILITY
+    """Generate one sensor reading dict. Always returns a plain dict.
+    criticality is always 0 here — the edge gateway ONNX model overrides it."""
+    sensor_id = random.choice(SENSORS)
+    is_anomaly = random.random() < ANOMALY_PROB
 
     if is_anomaly:
         value = round(random.uniform(*ANOMALY_TEMP_RANGE), 2)
@@ -36,7 +42,14 @@ def generate_reading():
         "timestamp": int(time.time() * 1000),
         "value": value,
         "metricType": "temperature",
-    }, is_anomaly
+        "criticality": 0,   # overridden by edge ONNX scorer
+    }
+
+
+def _is_anomaly_value(value):
+    """Helper: true if a value falls in the anomaly range."""
+    lo, hi = ANOMALY_TEMP_RANGE
+    return lo <= value <= hi
 
 
 def main():
@@ -44,8 +57,8 @@ def main():
     print("Press Ctrl+C to stop.\n")
 
     while True:
-        reading, is_anomaly = generate_reading()
-        tag = "  <-- ANOMALY" if is_anomaly else ""
+        reading = generate_reading()
+        tag = "  <-- ANOMALY" if _is_anomaly_value(reading["value"]) else ""
         try:
             resp = requests.post(EDGE_GATEWAY_URL, json=reading, timeout=5)
             print(f"Sent {reading} -> status {resp.status_code}{tag}")
@@ -53,6 +66,7 @@ def main():
             print(f"Failed to send reading (is the edge gateway running?): {e}")
 
         time.sleep(1)
+
 
 
 if __name__ == "__main__":
