@@ -32,3 +32,8 @@ logfile
 prometheus/data/
 dump.rdb
 
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
