@@ -1,0 +1,15 @@
+global:
+  scrape_interval: 5s      # scrape every 5 seconds for smooth dashboard graphs
+  evaluation_interval: 5s
+
+scrape_configs:
+  - job_name: 'edge-gateway'
+    static_configs:
+      # On Windows, Docker containers reach host services via host.docker.internal
+      - targets: ['host.docker.internal:8080']
+    metrics_path: '/actuator/prometheus'
+
+  - job_name: 'cloud-aggregator'
+    static_configs:
+      - targets: ['host.docker.internal:8081']
+    metrics_path: '/actuator/prometheus'
