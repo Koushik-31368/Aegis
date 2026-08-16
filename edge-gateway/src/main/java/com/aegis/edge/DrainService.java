@@ -5,6 +5,9 @@ import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
 import io.github.resilience4j.ratelimiter.RateLimiter;
 import io.github.resilience4j.ratelimiter.RateLimiterRegistry;
 import io.github.resilience4j.ratelimiter.RequestNotPermitted;
+import io.micrometer.core.instrument.Counter;
+import io.micrometer.core.instrument.Gauge;
+import io.micrometer.core.instrument.MeterRegistry;
 import jakarta.annotation.PostConstruct;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -53,17 +56,20 @@ public class DrainService {
     private final CloudForwarderService cloudForwarderService;
     private final CircuitBreakerRegistry circuitBreakerRegistry;
     private final RateLimiterRegistry rateLimiterRegistry;
+    private final MeterRegistry meterRegistry;
 
     private final AtomicBoolean drainInProgress = new AtomicBoolean(false);
 
     public DrainService(RedisBufferService redisBufferService,
                         CloudForwarderService cloudForwarderService,
                         CircuitBreakerRegistry circuitBreakerRegistry,
-                        RateLimiterRegistry rateLimiterRegistry) {
+                        RateLimiterRegistry rateLimiterRegistry,
+                        MeterRegistry meterRegistry) {
         this.redisBufferService = redisBufferService;
         this.cloudForwarderService = cloudForwarderService;
         this.circuitBreakerRegistry = circuitBreakerRegistry;
         this.rateLimiterRegistry = rateLimiterRegistry;
+        this.meterRegistry = meterRegistry;
     }
 
     /**
@@ -77,10 +83,28 @@ public class DrainService {
     @PostConstruct
     public void registerCircuitBreakerListener() {
         CircuitBreaker cb = circuitBreakerRegistry.circuitBreaker("cloudForward");
+
+        // Gauge: numeric CB state for Grafana time-series (0=CLOSED, 1=OPEN, 2=HALF_OPEN)
+        Gauge.builder("aegis.circuit.breaker.state", cb, c -> switch (c.getState()) {
+                    case CLOSED    -> 0.0;
+                    case OPEN      -> 1.0;
+                    case HALF_OPEN -> 2.0;
+                    default        -> -1.0;
+                })
+             .description("Circuit breaker state (0=CLOSED, 1=OPEN, 2=HALF_OPEN)")
+             .register(meterRegistry);
+
         cb.getEventPublisher().onStateTransition(event -> {
             CircuitBreaker.State toState = event.getStateTransition().getToState();
             log.info("Circuit breaker transition: {} → {}",
                     event.getStateTransition().getFromState(), toState);
+
+            // Counter: total transitions, tagged by destination state for Grafana
+            Counter.builder("aegis.circuit.transitions")
+                   .description("Circuit breaker state transitions")
+                   .tag("to_state", toState.name())
+                   .register(meterRegistry)
+                   .increment();
 
             if (toState == CircuitBreaker.State.CLOSED) {
                 log.info("Circuit CLOSED — scheduling background drain of Redis buffer");
