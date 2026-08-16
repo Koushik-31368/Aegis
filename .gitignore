@@ -1,0 +1,30 @@
+# Maven build outputs
+target/
+*.class
+
+# ONNX model is checked in (needed at runtime by edge-gateway)
+# ai-training outputs
+ai-training/__pycache__/
+ai-training/*.pyc
+ai-training/venv/
+ai-training/.venv/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logfile
+
+# PostgreSQL data (never commit DB data)
+/postgres-data/
+
+# Spring Boot DevTools restart trigger
+.reloadtrigger

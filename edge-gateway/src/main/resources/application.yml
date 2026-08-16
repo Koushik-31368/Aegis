@@ -1,0 +1,40 @@
+server:
+  port: 8080
+
+cloud:
+  aggregator:
+    url: http://localhost:8081
+
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+
+resilience4j:
+  circuitbreaker:
+    instances:
+      cloudForward:
+        slidingWindowSize: 10
+        failureRateThreshold: 50
+        waitDurationInOpenState: 10s
+        permittedNumberOfCallsInHalfOpenState: 3
+        # Record exceptions that indicate the cloud is unreachable
+        recordExceptions:
+          - java.lang.Exception
+        # Enable event publishing so DrainService can listen for CLOSED transitions
+        registerHealthIndicator: true
+  ratelimiter:
+    instances:
+      # Controls drain speed: max 5 buffered readings/sec so we never flood the
+      # cloud when recovering from a backlog. Live traffic is NOT rate-limited by this.
+      cloudDrain:
+        limitForPeriod: 5
+        limitRefreshPeriod: 1s
+        timeoutDuration: 2s
+
+logging:
+  level:
+    com.aegis.edge: INFO
+    io.github.resilience4j: INFO
+
