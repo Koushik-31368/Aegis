@@ -38,3 +38,14 @@ logging:
     com.aegis.edge: INFO
     io.github.resilience4j: INFO
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    prometheus:
+      enabled: true
+  metrics:
+    tags:
+      application: edge-gateway   # labels every metric with app=edge-gateway
