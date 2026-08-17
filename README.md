@@ -6,6 +6,19 @@ A distributed IoT telemetry pipeline built to demonstrate production-grade resil
 
 ---
 
+## Demo
+
+Watch what happens when the connection to the cloud breaks mid-stream — and how Aegis protects every reading and recovers on its own without losing or duplicating a single data point.
+
+> **📌 Placeholder:** `docs/demo.gif` needs to be added manually.
+> Record a ~20-25 s screen capture of [aegis-demo.html](https://koushik-31368.github.io/portfolio/aegis-demo.html) (click through all 6 steps), convert to GIF with [ezgif.com](https://ezgif.com/video-to-gif), and drop the file here as `docs/demo.gif`.
+
+![Aegis Demo](./docs/demo.gif)
+
+*For the full technical breakdown, see [Phases Built](#phases-built), [Key Technical Decisions](#key-technical-decisions), and [Metrics Reference](#metrics-reference) below.*
+
+---
+
 ## Architecture
 
 ```
