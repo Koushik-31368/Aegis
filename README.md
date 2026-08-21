@@ -58,6 +58,7 @@ Simulator ──► Edge Gateway (8080) ──► Cloud Aggregator (8081)
 - `CriticalityScorer` loads `model.onnx` at startup, scores every reading **before** the circuit-breaker call
 - Criticality score (0–10) attached to every reading, visible in cloud logs
 - Key fix: scoring moved out of `@CircuitBreaker` scope so OPEN-state readings still get real scores (not `criticality=0`) before buffering
+- **Benchmarked** — see [Benchmark Results](#benchmark-results) below: p99 < 7 ms inference latency, 100% recall on injected anomalies
 
 ### Phase 3 — Circuit Breaker + Redis Buffer
 - `CloudForwarderService` wraps the HTTP forward with Resilience4j `@CircuitBreaker`
@@ -164,6 +165,38 @@ GET http://localhost:3000                   → Grafana login (admin/admin)
 | TimescaleDB hypertables + `time_bucket` queries | Not yet verified — H2 with `MODE=PostgreSQL` used for dedup/JPA testing |
 | Docker Desktop (Windows) daemon instability | Prometheus + Grafana run natively via Scoop as workaround |
 | Grafana screenshots / demo video | Option B Step 6 — in progress |
+| **Two training scripts, one deployed model** | `ai-training/train_model.py` (Uniform(60,75) training data) produced the `model.onnx` currently deployed in the edge gateway. `simulator/train_model.py` (Normal(67.5,4.0)) exists but its output is not deployed. These should be consolidated into a single canonical training script — the Gaussian version would reduce boundary false-positives. Cleanup item only; detection logic is unchanged. |
+
+---
+
+## Benchmark Results
+
+Measured offline against `model.onnx` using `ai-training/benchmark.py` — no server, no database required. Reproduces by running `python ai-training/benchmark.py` after `pip install onnxruntime numpy`.
+
+### Inference Latency (`session.run()` only)
+
+| Percentile | Latency |
+|---|---|
+| p50 | **2.54 ms** |
+| p95 | **4.42 ms** |
+| p99 | **6.42 ms** |
+
+Measured over 1,050 interleaved readings (1,000 normal + 50 anomaly) after a 10-call warm-up. Pure ONNX Runtime time — excludes HTTP, Redis, and Spring overhead.
+
+### Classification Quality
+
+Test set: 1,050 readings drawn from the same distributions as `simulator/simulate.py` — Normal range `Uniform(60, 75)`, Anomaly range `Uniform(95, 120)`. Ground truth label: `value ≥ 95`. Decision threshold: `criticality ≥ 7` (matches `TelemetryController.CRITICAL_THRESHOLD`).
+
+| Metric | Value |
+|---|---|
+| Recall | **100%** (50/50 anomalies detected, zero false negatives) |
+| Precision | **66.7%** |
+| False-positive rate | **2.5%** (25/1,000 normal readings misclassified) |
+| F1 | **0.800** |
+
+**On the 2.5% false-positive rate:** All 25 FPs are values at the hard edges of the training distribution — 14 readings in the range `60.02–60.21` and 11 in `74.85–74.99`. This is an Isolation Forest edge-density artefact: the `Uniform(60, 75)` training data leaves the boundary regions sparsely populated, so the model scores them as anomalous. Interior normal values (≈60.4–74.5) are classified correctly with zero errors. This is a real model limitation, not a benchmark flaw; it is documented in [Known Gaps](#known-gaps) and addressable by retraining on Gaussian data.
+
+Raw per-reading results are in `ai-training/benchmark_results.csv`.
 
 ---
 
@@ -185,7 +218,14 @@ All metrics are labelled with `application=edge-gateway` or `application=cloud-a
 
 ```
 aegis-project/
+├── ai-training/             # Model training + offline benchmark
+│   ├── train_model.py       # Trains IsolationForest on Uniform(60,75), exports model.onnx
+│   ├── model.onnx           # Local training output (deployed copy is in edge-gateway/resources/)
+│   ├── benchmark.py         # Standalone latency + precision/recall benchmark (no server needed)
+│   └── benchmark_results.csv  # Per-reading results from last benchmark run
 ├── simulator/               # Python sensor simulator
+│   ├── simulate.py          # Sends 1 reading/sec to edge gateway, 5% injected anomalies
+│   └── train_model.py       # Alt training script using Normal(67.5,4.0) — see Known Gaps
 ├── edge-gateway/            # Spring Boot 3, port 8080
 │   ├── src/main/java/com/aegis/edge/
 │   │   ├── TelemetryController.java    # Scores + routes readings
@@ -195,7 +235,7 @@ aegis-project/
 │   │   └── DrainService.java           # Rate-limited drain on CB recovery
 │   └── src/main/resources/
 │       ├── application.yml
-│       └── model.onnx                  # Exported IsolationForest model
+│       └── model.onnx                  # Deployed IsolationForest model (built by ai-training/)
 ├── cloud-aggregator/        # Spring Boot 3, port 8081
 │   └── src/main/java/com/aegis/cloud/
 │       ├── IngestController.java       # /ingest + /stats + /health
