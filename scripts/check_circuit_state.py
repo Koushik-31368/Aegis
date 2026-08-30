@@ -1,10 +1,10 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Aegis — Circuit breaker smoke test.
+Aegis â€” Circuit breaker smoke test.
 
 Verifies the circuit breaker trips OPEN when the cloud is unreachable,
 then checks the Redis buffer fills. Non-destructive: does not kill any
-service — just checks current circuit state via Prometheus.
+service â€” just checks current circuit state via Prometheus.
 
 Usage:
     python scripts/check_circuit_state.py
@@ -15,6 +15,7 @@ import urllib.request
 
 
 def query_prometheus(promql):
+    """Execute a PromQL instant query and return (float_value, error_string)."""
     url = f"http://localhost:9090/api/v1/query?query={urllib.request.quote(promql)}"
     try:
         with urllib.request.urlopen(url, timeout=5) as r:
@@ -59,14 +60,15 @@ def main():
 
     print()
     if state == 0.0 and (buf or 0) == 0:
-        print("[OK] System healthy — circuit CLOSED, buffer empty")
+        print("[OK] System healthy â€” circuit CLOSED, buffer empty")
     elif state == 1.0:
-        print("[WARN] Circuit is OPEN — cloud unreachable, readings buffering in Redis")
+        print("[WARN] Circuit is OPEN â€” cloud unreachable, readings buffering in Redis")
     elif state == 2.0:
-        print("[INFO] Circuit is HALF_OPEN — probing cloud, drain may be in progress")
+        print("[INFO] Circuit is HALF_OPEN â€” probing cloud, drain may be in progress")
     else:
         print(f"[INFO] State = {state}")
 
 
 if __name__ == "__main__":
     main()
+
