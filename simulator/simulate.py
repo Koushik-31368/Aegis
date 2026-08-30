@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
 Aegis Phase 1 Simulator.
 
@@ -16,7 +16,7 @@ import time
 import requests
 
 EDGE_GATEWAY_URL = "http://localhost:8080/telemetry"
-SENSORS = ["sensor-01", "sensor-02", "sensor-03"]
+SENSORS = ["sensor-01", "sensor-02", "sensor-03", "sensor-04", "sensor-05"]
 NORMAL_MEAN = 67.5          # midpoint of normal temp range
 NORMAL_STD = 4.0            # approximate std for normal readings
 NORMAL_TEMP_RANGE = (60.0, 75.0)   # degrees, "normal" operating range
@@ -28,7 +28,7 @@ SENSOR_IDS = SENSORS        # legacy alias
 
 def generate_reading():
     """Generate one sensor reading dict. Always returns a plain dict.
-    criticality is always 0 here — the edge gateway ONNX model overrides it."""
+    criticality is always 0 here â€” the edge gateway ONNX model overrides it."""
     sensor_id = random.choice(SENSORS)
     is_anomaly = random.random() < ANOMALY_PROB
 
@@ -74,3 +74,4 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\nSimulator stopped.")
+
