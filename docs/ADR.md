@@ -57,3 +57,15 @@
 **Decision:** The Resilience4j RateLimiter (`cloudDrain`, 5 req/sec) is applied only to the drain thread in DrainService. Live readings from the simulator continue flowing through CloudForwarderService.forwardToCloud() without rate limiting.
 
 **Consequences:** Live sensor traffic is never delayed by the drain backlog. The cloud receives a steady, manageable trickle of buffered readings alongside normal live traffic. Recovery time is proportional to buffer depth (buffer_size / 5 seconds).
+
+---
+
+## ADR-006: LPOP for drain batches instead of LRANGE+DEL
+
+**Status:** Accepted
+
+**Context:** Phase 4 drain needs to pull readings from Redis in small batches. Two approaches: (a) LRANGE to read + DEL to remove, or (b) LPOP with count to atomically pop entries.
+
+**Decision:** Use LPOP(key, count) in RedisBufferService.drainBatch(). Each call atomically removes and returns up to N entries from the left (oldest) end of the list.
+
+**Consequences:** No risk of double-processing if the drain thread crashes mid-batch — readings are removed as they are popped. Concurrent calls from multiple threads cannot pull the same reading twice. Simpler code than LRANGE+LTRIM.
