@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Aegis — Buffer stress test.
+Aegis â€” Buffer stress test.
 
 Sends N readings rapidly to edge-gateway while cloud-aggregator is running.
 Then checks how many landed in Redis vs were forwarded directly.
@@ -18,6 +18,7 @@ import urllib.request
 
 
 def post(url, payload):
+    """POST a JSON payload and return the HTTP status code, or None on error."""
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
@@ -74,3 +75,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
