@@ -16,6 +16,7 @@ import urllib.request
 
 
 def post_json(url, payload):
+    """POST a JSON payload and return (status_code, response_body)."""
     data = json.dumps(payload).encode()
     req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json"})
     try:
@@ -88,3 +89,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
