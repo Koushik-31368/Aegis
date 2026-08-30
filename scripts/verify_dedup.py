@@ -1,6 +1,6 @@
-#!/usr/bin/env python3
+﻿#!/usr/bin/env python3
 """
-Aegis — Deduplication verification script.
+Aegis â€” Deduplication verification script.
 
 Sends the same reading twice and confirms the cloud-aggregator
 accepts the first and silently rejects the second.
@@ -37,7 +37,7 @@ def main():
     edge_url = "http://localhost:8080/telemetry"
     stats_url = "http://localhost:8081/stats"
 
-    # Fixed payload — same every time so same SHA-256 hash is produced
+    # Fixed payload â€” same every time so same SHA-256 hash is produced
     payload = {
         "sensorId": "sensor-dedup-test",
         "timestamp": 9999999999001,
@@ -48,7 +48,7 @@ def main():
 
     print("=== Aegis Dedup Verification ===\n")
 
-    # Check Prometheus dedup counter — unambiguous even with simulator running
+    # Check Prometheus dedup counter â€” unambiguous even with simulator running
     def get_dedup_count():
         try:
             url = "http://localhost:9090/api/v1/query?query=aegis_duplicates_rejected_total"
@@ -80,7 +80,7 @@ def main():
     delta = dedup_after - dedup_before
     print(f"\nDedup counter delta: +{delta} (expected: +1)")
     if delta >= 1:
-        print("[PASS] Dedup working correctly — at least 1 rejection recorded")
+        print("[PASS] Dedup working correctly â€” at least 1 rejection recorded")
     else:
         print("[FAIL] Expected dedup counter to increment")
 
