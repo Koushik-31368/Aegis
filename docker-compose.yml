@@ -1,4 +1,4 @@
-services:
+﻿services:
   redis:
     image: redis:7-alpine
     container_name: aegis-redis
@@ -64,7 +64,9 @@ services:
       - prometheus
     restart: unless-stopped
 
+# Named volumes for persistent data across container restarts
 volumes:
   redis-data:
   timescale-data:
   grafana-data:
+
