@@ -23,6 +23,7 @@ NORMAL_TEMP_RANGE = (60.0, 75.0)   # degrees, "normal" operating range
 ANOMALY_TEMP_RANGE = (95.0, 120.0)  # degrees, clearly abnormal
 ANOMALY_PROB = 0.05         # 5% of readings are anomalies
 ANOMALY_PROBABILITY = ANOMALY_PROB  # legacy alias
+REQUEST_TIMEOUT = 5  # seconds — prevent indefinite hangs on slow/dead gateway
 SENSOR_IDS = SENSORS        # legacy alias
 
 
@@ -74,4 +75,5 @@ if __name__ == "__main__":
         main()
     except KeyboardInterrupt:
         print("\nSimulator stopped.")
+
 
