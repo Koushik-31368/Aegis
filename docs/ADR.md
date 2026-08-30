@@ -45,3 +45,15 @@
 **Decision:** Use H2 with `MODE=PostgreSQL` and `DB_CLOSE_DELAY=-1`. JPA entities, UNIQUE constraints, and the drain/dedup flow are fully verified on H2.
 
 **Consequences (known gap):** TimescaleDB-specific features (hypertables, `time_bucket`, compression policies) are not verified. Resume bullets should say "PostgreSQL" not "TimescaleDB" until Option A is complete.
+
+---
+
+## ADR-005: Rate limiter applied to drain thread only
+
+**Status:** Accepted
+
+**Context:** When the circuit breaker transitions to CLOSED after an outage, potentially hundreds of buffered readings need to be replayed to the cloud. Forwarding them all at once would spike cloud load and potentially re-trip the circuit breaker.
+
+**Decision:** The Resilience4j RateLimiter (`cloudDrain`, 5 req/sec) is applied only to the drain thread in DrainService. Live readings from the simulator continue flowing through CloudForwarderService.forwardToCloud() without rate limiting.
+
+**Consequences:** Live sensor traffic is never delayed by the drain backlog. The cloud receives a steady, manageable trickle of buffered readings alongside normal live traffic. Recovery time is proportional to buffer depth (buffer_size / 5 seconds).
