@@ -1,4 +1,4 @@
-# Maven build outputs
+﻿# Maven build outputs
 target/
 *.class
 
@@ -37,3 +37,6 @@ dump.rdb
 __pycache__/
 *.pyc
 *.pyo
+
+# Pytest cache
+.pytest_cache/
