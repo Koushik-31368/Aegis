@@ -74,5 +74,8 @@ def main():
 
 
 if __name__ == "__main__":
+    import sys
     main()
+    sys.exit(0)
+
 
