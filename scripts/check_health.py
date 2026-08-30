@@ -16,6 +16,7 @@ import urllib.error
 
 
 def get(url, label):
+    """Fetch a URL and return (status_code, body). Returns (None, error) on failure."""
     try:
         with urllib.request.urlopen(url, timeout=3) as r:
             body = r.read().decode()
@@ -97,3 +98,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
