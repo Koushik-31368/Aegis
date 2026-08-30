@@ -40,3 +40,8 @@ __pycache__/
 
 # Pytest cache
 .pytest_cache/
+
+# Environment variables
+.env
+.env.local
+
